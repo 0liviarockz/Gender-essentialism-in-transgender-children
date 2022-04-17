@@ -1,0 +1,124 @@
+---
+title: "Gender Essentialism Draft"
+output: html_document
+---
+
+```{r}
+
+data_essentialism <- read.csv("~/Desktop/Essentialism_in_trans_data_OSF.csv", sep=";")
+library(ggplot2)
+
+```
+
+Manipulate data to combine Same Sex columns and Opposite Sex columns
+*Note: I am unable o solve this issue of merging/combining columns so this function won't run properly
+```{r}
+data_essentialism$samesexscore<-NA
+data_essentialism$oppsexscore<-NA
+```
+
+
+```{r}
+colnames(data_essentialism)
+library(dplyr)
+data_essentialism$samesexscore<-rowSums(data_essentialism[,c("SameSexBoyHair" , "SameSexBoyBall", "SameSexBoyDress", "SameSexBoyDoll","SameSexGirlHair", "SameSexGirlBall", "SameSexGirlDress", "SameSexGirlDoll")])
+
+data_essentialism$oppsexscore<-rowSums(data_essentialism[,c("OppSexBoyHair" , "OppSexBoyBall", "OppSexBoyDress", "OppSexBoyDoll","OppSexGirlHair", "OppSexGirlBall", "OppSexGirlDress", "OppSexGirlDoll")])
+
+```
+
+
+rename Conditions to match participant group
+```{r}
+class(data_essentialism$Condition)
+data_essentialism$Condition[data_essentialism$Condition =="1"] <-"Control"
+data_essentialism$Condition[data_essentialism$Condition =="2"] <-"Transgender Children"
+data_essentialism$Condition[data_essentialism$Condition =="3"] <-"Siblings"
+```
+
+rename participant column 
+```{r}
+names(data_essentialism)[names(data_essentialism) == 'SubNum_deid'] <- 'participant'
+```
+Assess samesex and oppsex score for analysis and graphing
+```{r}
+data_essentialism$SexMatchedRearing<- NA
+data_essentialism$OtherSexRearing<- NA
+divide8<- function(column)
+  column /8
+data_essentialism$SexMatchedRearing<- divide8(data_essentialism$samesexscore)
+data_essentialism$OtherSexRearing<- divide8(data_essentialism$oppsexscore)
+```
+
+Run ANOVA for data essentialism in Sex-Matched and Other-Sex Rearing Conditions
+```{r}
+anovaSexMatched<-aov(SexMatchedRearing~ Condition, data=data_essentialism)
+summary(anovaSexMatched)
+library(report)
+report(anovaSexMatched)
+```
+
+```{r}
+anovaOtherSex<-aov(OtherSexRearing~ Condition, data=data_essentialism)
+report(anovaOtherSex)
+```
+
+Run T-tests to see if Sex-Matched and Other-Sex Rearing differs by gender of participants
+```{r}
+ttestSexMatched<-t.test(SexMatchedRearing~GenderID, data=data_essentialism, var.equal=TRUE)
+report(ttestSexMatched)
+
+```
+
+```{r}
+ttestOtherSex<-t.test(OtherSexRearing~GenderID, data=data_essentialism, var.equal=TRUE)
+report(ttestOtherSex)
+```
+
+Run a Correlation between age and Sex-Matched and Other-Sex Rearing
+```{r}
+CorTestSexMatched<-cor.test(data_essentialism$AgeYrs, data_essentialism$SexMatchedRearing)
+report(CorTestSexMatched)
+```
+
+```{r}
+CorTestOtherSex<-cor.test(data_essentialism$AgeYrs, data_essentialism$OtherSexRearing)
+report(CorTestOtherSex)
+```
+
+
+Graph data for each participant group. 
+```{r}
+library(ggplot2)
+library(wesanderson)
+library(hrbrthemes) 
+SexandOtherGraph<-ggplot(data_essentialism, aes(SexMatchedRearing, OtherSexRearing, color=Condition))+geom_point()+ xlim(0, 1.00)+ ylim(0, 1.00)+ geom_jitter()+ theme_classic()+ geom_smooth(method="lm", aes(fill=Condition))+ scale_color_manual(values=wes_palette(n=3, name="FantasticFox1"))+scale_fill_manual(values=wes_palette(n=3, name="FantasticFox1"))
+
+```
+ Graph Age and Sex Matched/Other Sex Rearing 
+```{r}
+AgeGraphSame<-ggplot(data_essentialism, aes(AgeYrs, SexMatchedRearing))+geom_jitter()+geom_smooth(method="lm", aes(fill=Condition))+ theme_minimal() + scale_color_manual(values=wes_palette(n=3,name="FantasticFox1"))+scale_fill_manual(values=wes_palette(n=3, name="FantasticFox1"))
+
+AgeGraphSame+facet_wrap(~Condition)
+```
+
+```{r}
+AgeGraphOther<-ggplot(data_essentialism, aes(AgeYrs, OtherSexRearing))+geom_jitter()+ geom_smooth(method="lm", aes(fill=Condition))+ theme_minimal() + scale_color_manual(values=wes_palette(n=3,name="FantasticFox1"))+scale_fill_manual(values=wes_palette(n=3, name="FantasticFox1"))
+
+AgeGraphOther+facet_wrap(~Condition)
+```
+ Graph Gender and Sex Matched/Other Sex Rearing 
+```{r}
+GenderGraphSame<-ggplot(data_essentialism, aes(GenderID,SexMatchedRearing, color=Condition))+geom_jitter()+ geom_smooth(method="lm", aes(fill=Condition))+ theme_minimal()+scale_color_manual(values=wes_palette(n=3,name="FantasticFox1"))+scale_fill_manual(values=wes_palette(n=3, name="FantasticFox1"))
+
+GenderGraphSame+facet_wrap(~Condition)
+```
+
+```{r}
+GenderGraphOther<-ggplot(data_essentialism, aes(GenderID,OtherSexRearing, color=Condition))+geom_jitter()+ geom_smooth(method="lm", aes(fill=Condition))+ theme_minimal()+scale_color_manual(values=wes_palette(n=3,name="FantasticFox1"))+scale_fill_manual(values=wes_palette(n=3, name="FantasticFox1"))
+
+
+GenderGraphOther+facet_wrap(~Condition)
+
+```
+
